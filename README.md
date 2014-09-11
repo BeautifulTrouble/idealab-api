@@ -16,7 +16,7 @@ python3 -m venv virtualenv
 
 ```shell
 . ./activate
-. ./my_obscenely_long_path_complicates_life/bin/activate
+. ./my\ obscenely\ long\ path\ complicates\ life/bin/activate
 ```
 
 * Install the requirements

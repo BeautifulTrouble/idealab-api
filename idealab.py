@@ -139,7 +139,7 @@ class ValidMixin(object):
     This model mixin provides an __init__ method which aids in the creation
     of new records. When an object representing a database row is created,
     its "user" relationship is set to current_user, and all columns whose
-    nares are in the model's "initialize" attribute (a sequence of strings)
+    names are in the model's "initialize" attribute (a sequence of strings)
     are set from incoming user data. If any data was missing, the object's
     is_valid attribute will be set to False.
     '''
@@ -176,6 +176,17 @@ class User(UserMixin, db.Model):
             # Anonymous people here ~~---v 
         return self.name
 
+    def update_from_request(self):
+        if current_user.is_authenticated():
+            j = request.json
+            if 'name' in j or 'contact' in j:
+                if 'name' in j:
+                    current_user.name = j['name']
+                if 'contact' in j:
+                    current_user.contact = j['contact']
+                db.session.add(current_user)
+                db.session.commit()
+
 class Idea(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.relationship('User', backref=db.backref('ideas', lazy='dynamic'))
@@ -183,10 +194,10 @@ class Idea(ValidMixin, db.Model):
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     title = db.Column(db.Unicode(500))
-    description = db.Column(db.Unicode(5000))
+    short_write_up = db.Column(db.Unicode(5000))
     published = db.Column(db.Boolean, default=False)
 
-    initialize = 'title', 'description'
+    initialize = 'title', 'short_write_up'
 
     @property
     def serialized(self):
@@ -198,7 +209,7 @@ class Idea(ValidMixin, db.Model):
             'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
             'title': self.title,
-            'description': self.description,
+            'short_write_up': self.short_write_up,
         }
 
 class Improvement(ValidMixin, db.Model):
@@ -324,11 +335,14 @@ def get_objects(Model, id=None):
         return status(200, data=obj.serialized)
     return status(200, data=[obj.serialized for obj in Model.query.all()])
 
+
 def post_object(Model):
     '''
     The user-writable object is POSTed here
     '''
-    #TODO: If new user contact info is provided, add it to the user
+    # We'll accept name and contact from any source
+    current_user.update_from_request()
+
     obj = Model(request.json)
     if obj.is_valid:
         db.session.add(obj)
@@ -340,7 +354,9 @@ def update_object(Model, id):
     '''
     The user-writable object is uPUTdated or DELETEed here
     '''
-    #TODO: If new user contact info is provided, add it to the user
+    # We'll accept name and contact from any source
+    current_user.update_from_request()
+
     obj = Model.query.get(id)
     if not obj:
         return status(404)

@@ -241,6 +241,7 @@ def login(provider):
     callback_url = url_for('authorize', provider=provider, next=request.args.get('next'), _external=True)
     return p.authorize(callback=callback_url) # or request.referrer or None)
 
+# OAuth providers may require you to register this callback url
 @app.route('/login/<provider>/authorize')
 def authorize(provider):
     p = oauth_providers.get(provider)

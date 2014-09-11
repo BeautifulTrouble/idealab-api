@@ -1,5 +1,4 @@
 #Idealab API
----
 
 ##Installation
 
@@ -9,23 +8,23 @@
 
 3. Create a virtual environment called virtualenv
 
-`python3 -m venv virtualenv`
+    python3 -m venv virtualenv
 
 4. Activate it with the provided symlink or however you wanted it
 
-`. ./activate`
+    . ./activate
 
-`. ./my_obscenely_long_path_complicates_life/bin/activate
+    . ./my_obscenely_long_path_complicates_life/bin/activate
 
 5. Install the requirements
 
-`pip install -r requirements.txt`
+    pip install -r requirements.txt
 
 6. Run the thing, optionally passing debug flag
 
-`./idealab.py`
+    ./idealab.py
 
-`./idealab.py debug`
+    ./idealab.py debug
 
 7. Point your nginx at the thing properly with gunicorn or be lazy and send your requests directly to the locally running server.
 

@@ -168,6 +168,14 @@ class User(UserMixin, db.Model):
     def __init__(self, id, name, contact, provider):
         [setattr(self, k, v) for k,v in locals().items() if k != 'self']
 
+    @property
+    def public_name(self):
+        if not self.name:
+            if self.provider == 'twitter' and self.contact[:1] == '@':
+                return self.contact
+            # Anonymous people here ~~---v 
+        return self.name
+
 class Idea(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.relationship('User', backref=db.backref('ideas', lazy='dynamic'))
@@ -185,7 +193,7 @@ class Idea(ValidMixin, db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'name': self.user.name or 'Anonymous twitterer',
+            'name': self.user.public_name,
             # Don't bother doing dates in js... they're awkward enough in python
             'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),

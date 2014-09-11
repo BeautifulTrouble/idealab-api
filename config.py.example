@@ -1,4 +1,4 @@
-APPLICATION_ROOT        = ''
+APPLICATION_ROOT        = '/api'
 SECRET_KEY              = 'This should be a random string'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///idealab.db'
 # OAuth providers (use empty strings to disable a provider)

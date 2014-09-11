@@ -37,7 +37,7 @@ pip install -r requirements.txt
   
 ```nginx
     location ^~ /api {
-        proxy_pass http://solutions.thischangeseverything.org;
+        proxy_pass http://solutions.thischangeseverything.org:9000;
         proxy_redirect off;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

@@ -5,6 +5,7 @@
 # ////////////////////////////////////////////////////////////////////////////
 import datetime
 import hashlib
+import re
 import sys
 from flask import Flask
 from flask import jsonify, redirect, request, session, url_for
@@ -204,11 +205,12 @@ class Idea(ValidMixin, db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'name': self.user.public_name,
+            'contributors': [self.user.public_name],
             # Don't bother doing dates in js... they're awkward enough in python
             'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
             'title': self.title,
+            'slug': re.sub(r'\W+', '-', self.title.lower()),
             'short_write_up': self.short_write_up,
         }
 

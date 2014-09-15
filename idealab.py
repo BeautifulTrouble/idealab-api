@@ -125,7 +125,9 @@ login_manager.init_app(app)
 
 @login_manager.unauthorized_handler
 def unauthorized_handler():
-    return oauth_redirect()
+    #TODO: Look at the content-type of the request and be smart about
+    #      returning a redirect or a status code + json
+    return status(401)
 
 @login_manager.user_loader
 def user_loader(user_id):

@@ -32,7 +32,7 @@ def get_next_url():
     return request.args.get('next') or OAUTH_REDIRECT
 
 def oauth_redirect():
-    return redirect(g.get('oauth_redirect') or get_next_url())
+    return redirect(session.get('oauth_redirect') or get_next_url())
 
 def sha1(s):
     return hashlib.sha1(s.encode('utf8')).hexdigest()
@@ -256,14 +256,14 @@ db.create_all()
 # OAuth Views                                                                       
 # ////////////////////////////////////////////////////////////////////////////
 @app.route('/logout')
-@login_required
 def logout():
-    logout_user()
+    if current_user.is_authenticated():
+        logout_user()
     return oauth_redirect()
 
 @app.route('/login/<provider>')
 def login(provider):
-    g.oauth_redirect = get_next_url()
+    session['oauth_redirect'] = get_next_url()
     if current_user.is_authenticated():
         return oauth_redirect()
     p = oauth_providers.get(provider)
@@ -307,12 +307,10 @@ def get_ideas(id=None):
     return get_objects(Idea, id)
 
 @app.route('/ideas', methods=['POST'])
-@login_required
 def post_idea():
     return post_object(Idea)
 
 @app.route('/ideas/<int:id>', methods=['PUT', 'DELETE'])
-@login_required
 def update_idea(id):
     return update_object(Idea, id)
 
@@ -325,12 +323,10 @@ def get_improvements(id=None):
     return get_objects(Improvement, id)
 
 @app.route('/improvements', methods=['POST'])
-@login_required
 def post_improvement():
-    return post_object(Improvement)
+    return unauthorized_handler()
 
 @app.route('/improvements/<int:id>', methods=['PUT', 'DELETE'])
-@login_required
 def update_improvement(id):
     return update_object(Improvement, id)
 
@@ -341,6 +337,14 @@ def update_improvement(id):
 @login_required
 def get_me():
     return status(200, data=current_user.serialized)
+
+
+# /last (data from last POST)
+# /////////////////////////////////////////////////////////
+@app.route('/last', methods=['GET'])
+@login_required
+def get_last():
+    return status(200, data=session.get('last_post'))
 
 
 # Generic RESTfulness
@@ -356,11 +360,14 @@ def get_objects(Model, id=None):
         return status(200, data=obj.serialized)
     return status(200, data=[obj.serialized for obj in Model.query.all()])
 
-
 def post_object(Model):
     '''
     The user-writable object is POSTed here
     '''
+    session['last_post'] = request.json
+    if not current_user.is_authenticated():
+        return unauthorized_handler()
+
     # We'll accept name and contact from any source
     current_user.update_from_request()
 
@@ -375,6 +382,9 @@ def update_object(Model, id):
     '''
     The user-writable object is uPUTdated or DELETEed here
     '''
+    if not current_user.is_authenticated():
+        return unauthorized_handler()
+
     # We'll accept name and contact from any source
     current_user.update_from_request()
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# XXX: Target is python3.x, will this be viable? Test 2.7 extensively.
 
 # Quality imports                                                             
 # ////////////////////////////////////////////////////////////////////////////
@@ -8,7 +7,7 @@ import hashlib
 import re
 import sys
 from flask import Flask
-from flask import jsonify, redirect, request, session, url_for
+from flask import g, jsonify, redirect, request, session, url_for
 from flask.ext.login import LoginManager, UserMixin
 from flask.ext.login import current_user, login_required, login_user, logout_user
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -23,15 +22,14 @@ from config import (
     GOOGLE_SECRET,
     TWITTER_CONSUMER_KEY,
     TWITTER_CONSUMER_SECRET,
+    OAUTH_REDIRECT,
 )
 
 
 # Utilities                                                                   
 # ////////////////////////////////////////////////////////////////////////////
-def get_next_url(fallback_route=None):
-    next_url = request.args.get('next')
-    fallback = url_for(fallback_route) if fallback_route else '/#idealab'   #XXX: config var
-    return next_url or fallback
+def get_next_url():
+    return request.args.get('next') or OAUTH_REDIRECT
 
 def sha1(s):
     return hashlib.sha1(s.encode('utf8')).hexdigest()
@@ -256,19 +254,19 @@ db.create_all()
 @login_required
 def logout():
     logout_user()
-    return status(200, message="Goodbye")
+    return redirect(get_next_url())
 
 @app.route('/login/<provider>')
 def login(provider):
+    g.oauth_redirect = get_next_url()
     if current_user.is_authenticated():
-        return status(200, message="User already logged in with " + current_user.provider)
+        return redirect(g.oauth_redirect)
     p = oauth_providers.get(provider)
     if not p:
         # The provider doesn't exist
         return status(500, message="I don't know how to authenticate with " + provider)
-    # XXX: The "next" here needn't be here. Google don't need it nor do it like it.
-    callback_url = url_for('authorize', provider=provider, next=request.args.get('next'), _external=True)
-    return p.authorize(callback=callback_url) # or request.referrer or None)
+    callback_url = url_for('authorize', provider=provider, _external=True)
+    return p.authorize(callback=callback_url)
 
 # OAuth providers may require you to register this callback url
 @app.route('/login/<provider>/authorize')
@@ -280,7 +278,7 @@ def authorize(provider):
     resp = p.authorized_response()
     if resp is None or isinstance(resp, OAuthException):
         # Authorization denied
-        return status(401)
+        return redirect(g.get('oauth_redirect', get_next_url()))
     session['oauth'] = resp
     # Retrieve id as well as name and email if possible
     user_id, name, contact = p.user_info()
@@ -293,7 +291,7 @@ def authorize(provider):
         db.session.add(user)
         db.session.commit()
     login_user(user, remember=True)
-    return status(200)
+    return redirect(g.get('oauth_redirect', get_next_url()))
 
 
 # /ideas 

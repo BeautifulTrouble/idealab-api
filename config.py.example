@@ -8,3 +8,5 @@ GOOGLE_ID               = ''
 GOOGLE_SECRET           = ''
 TWITTER_CONSUMER_KEY    = ''
 TWITTER_CONSUMER_SECRET = ''
+# Fallback redirect after OAuth
+OAUTH_REDIRECT          = '/#idealab'

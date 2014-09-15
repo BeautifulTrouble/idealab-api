@@ -160,7 +160,7 @@ class ValidMixin(object):
                 self.is_valid = False
                 return
             length = getattr(self.__class__, column_name).type.length
-            setattr(self, column_name, dct[column_name][:length])
+            setattr(self, column_name, dct[column_name].strip()[:length])
         self.is_valid = True
 
 class User(UserMixin, db.Model):
@@ -176,10 +176,10 @@ class User(UserMixin, db.Model):
         if current_user.is_authenticated():
             j = request.json
             if 'name' in j or 'contact' in j:
-                if 'name' in j:
-                    current_user.name = j['name']
-                if 'contact' in j:
-                    current_user.contact = j['contact']
+                name = j.get('name', '').strip()
+                if name: current_user.name = name
+                contact = j.get('contact', '').strip()
+                if contact: current_user.contact = contact
                 db.session.add(current_user)
                 db.session.commit()
 

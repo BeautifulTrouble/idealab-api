@@ -324,7 +324,7 @@ def get_improvements(id=None):
 
 @app.route('/improvements', methods=['POST'])
 def post_improvement():
-    return unauthorized_handler()
+    return post_object(Improvement)
 
 @app.route('/improvements/<int:id>', methods=['PUT', 'DELETE'])
 def update_improvement(id):

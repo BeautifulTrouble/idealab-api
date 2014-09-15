@@ -169,14 +169,6 @@ class User(UserMixin, db.Model):
     def __init__(self, id, name, contact, provider):
         [setattr(self, k, v) for k,v in locals().items() if k != 'self']
 
-    @property
-    def public_name(self):
-        if not self.name:
-            if self.provider == 'twitter' and self.contact[:1] == '@':
-                return self.contact
-            # Anonymous people here ~~---v 
-        return self.name
-
     def update_from_request(self):
         if current_user.is_authenticated():
             j = request.json
@@ -187,6 +179,22 @@ class User(UserMixin, db.Model):
                     current_user.contact = j['contact']
                 db.session.add(current_user)
                 db.session.commit()
+
+    @property
+    def public_name(self):
+        if not self.name:
+            if self.provider == 'twitter' and self.contact[:1] == '@':
+                return self.contact
+            # Anonymous people here ~~---v
+        return self.name
+
+    @property
+    def serialized(self):
+        return {
+            'name': self.public_name,
+            'contact': self.contact,
+            'provider': self.provider,
+        }
 
 class Idea(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -322,6 +330,14 @@ def post_improvement():
 @login_required
 def update_improvement(id):
     return update_object(Improvement, id)
+
+
+# /me
+# /////////////////////////////////////////////////////////
+@app.route('/me', methods=['GET'])
+@login_required
+def get_me():
+    return status(200, data=current_user.serialized)
 
 
 # Generic RESTfulness

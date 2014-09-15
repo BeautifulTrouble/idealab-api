@@ -125,7 +125,7 @@ login_manager.init_app(app)
 
 @login_manager.unauthorized_handler
 def unauthorized_handler():
-    return status(401)
+    return oauth_redirect()
 
 @login_manager.user_loader
 def user_loader(user_id):
@@ -257,7 +257,7 @@ db.create_all()
 @login_required
 def logout():
     logout_user()
-    return redirect(get_next_url())
+    return oauth_redirect()
 
 @app.route('/login/<provider>')
 def login(provider):

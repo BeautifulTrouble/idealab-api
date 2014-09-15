@@ -341,9 +341,12 @@ def get_me():
 
 # /last (data from last POST)
 # /////////////////////////////////////////////////////////
-@app.route('/last', methods=['GET'])
+@app.route('/last', methods=['GET', 'POST'])
 @login_required
 def get_last():
+    if request.method == 'POST':
+        session['last_post'] = {}
+        return status(201)
     return status(200, data=session.get('last_post'))
 
 

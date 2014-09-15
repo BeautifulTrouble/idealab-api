@@ -31,6 +31,9 @@ from config import (
 def get_next_url():
     return request.args.get('next') or OAUTH_REDIRECT
 
+def oauth_redirect():
+    return redirect(g.get('oauth_redirect') or get_next_url())
+
 def sha1(s):
     return hashlib.sha1(s.encode('utf8')).hexdigest()
 
@@ -260,11 +263,11 @@ def logout():
 def login(provider):
     g.oauth_redirect = get_next_url()
     if current_user.is_authenticated():
-        return redirect(g.oauth_redirect)
+        return oauth_redirect()
     p = oauth_providers.get(provider)
     if not p:
         # The provider doesn't exist
-        return status(500, message="I don't know how to authenticate with " + provider)
+        return oauth_redirect()
     callback_url = url_for('authorize', provider=provider, _external=True)
     return p.authorize(callback=callback_url)
 
@@ -274,11 +277,11 @@ def authorize(provider):
     p = oauth_providers.get(provider)
     if not p:
         # The provider doesn't exist
-        return status(500, message="I don't know how to authenticate with " + provider)
+        return oauth_redirect()
     resp = p.authorized_response()
     if resp is None or isinstance(resp, OAuthException):
         # Authorization denied
-        return redirect(g.get('oauth_redirect', get_next_url()))
+        return oauth_redirect()
     session['oauth'] = resp
     # Retrieve id as well as name and email if possible
     user_id, name, contact = p.user_info()
@@ -291,7 +294,7 @@ def authorize(provider):
         db.session.add(user)
         db.session.commit()
     login_user(user, remember=True)
-    return redirect(g.get('oauth_redirect', get_next_url()))
+    return oauth_redirect()
 
 
 # /ideas 

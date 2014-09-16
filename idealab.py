@@ -177,9 +177,11 @@ class User(UserMixin, db.Model):
             j = request.json
             if 'name' in j or 'contact' in j:
                 name = j.get('name', '').strip()
-                if name: current_user.name = name
+                if name: 
+                    current_user.name = name
                 contact = j.get('contact', '').strip()
-                if contact: current_user.contact = contact
+                if contact: 
+                    current_user.contact = contact
                 db.session.add(current_user)
                 db.session.commit()
 

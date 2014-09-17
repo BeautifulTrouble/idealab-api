@@ -185,6 +185,9 @@ class User(UserMixin, db.Model):
                 db.session.add(current_user)
                 db.session.commit()
 
+    def is_admin(self):
+        "TODO"
+
     @property
     def public_name(self):
         if not self.name:
@@ -206,10 +209,10 @@ class Idea(ValidMixin, db.Model):
     user = db.relationship('User', backref=db.backref('ideas', lazy='dynamic'))
     user_id = db.Column(db.Unicode, db.ForeignKey('user.id'))
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    published = db.Column(db.Boolean, default=False)
 
     title = db.Column(db.Unicode(500))
     short_write_up = db.Column(db.Unicode(5000))
-    published = db.Column(db.Boolean, default=False)
 
     initialize = 'title', 'short_write_up'
 
@@ -222,9 +225,11 @@ class Idea(ValidMixin, db.Model):
             # Don't bother doing dates in js... they're awkward enough in python
             'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
-            'title': self.title,
             #'slug': re.sub(r'\s+', '-', self.title.lower()),
             'slug': self.title.lower().replace(' ', '-'), # consistency beats aesthetic appeal
+            'published': self.published,
+
+            'title': self.title,
             'short_write_up': self.short_write_up,
         }
 
@@ -233,6 +238,7 @@ class Improvement(ValidMixin, db.Model):
     user = db.relationship('User', backref=db.backref('improvements', lazy='dynamic'))
     user_id = db.Column(db.Unicode, db.ForeignKey('user.id'))
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    published = db.Column(db.Boolean, default=False)
 
     # Don't overcomplicate this database with foreign keys
     module = db.Column(db.Unicode(500))
@@ -247,6 +253,8 @@ class Improvement(ValidMixin, db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
+            'published': self.published,
+
             'module': self.module,
             'link': self.link,
             'type': self.type,
@@ -307,7 +315,10 @@ def authorize(provider):
 @app.route('/ideas', methods=['GET'])
 @app.route('/ideas/<int:id>', methods=['GET'])
 def get_ideas(id=None):
-    return get_objects(Idea, id)
+    clause = "published = '1'"
+    if current_user.is_admin():
+        clause = ''
+    return get_objects(Idea, id, where=clause)
 
 @app.route('/ideas', methods=['POST'])
 def post_idea():
@@ -323,7 +334,10 @@ def update_idea(id):
 @app.route('/improvements', methods=['GET'])
 @app.route('/improvements/<int:id>', methods=['GET'])
 def get_improvements(id=None):
-    return get_objects(Improvement, id)
+    clause = "user_id = '{}'".format(current_user.id)
+    if current_user.is_admin():
+        clause = ''
+    return get_objects(Improvement, id, where=clause)
 
 @app.route('/improvements', methods=['POST'])
 def post_improvement():
@@ -342,7 +356,7 @@ def get_me():
     return status(200, data=current_user.serialized)
 
 
-# /last (data from last POST)
+# /last
 # /////////////////////////////////////////////////////////
 @app.route('/last', methods=['GET', 'POST'])
 @login_required
@@ -355,16 +369,17 @@ def get_last():
 
 # Generic RESTfulness
 # /////////////////////////////////////////////////////////
-def get_objects(Model, id=None):
+def get_objects(Model, id=None, where=''):
     '''
     GET the collection or single objects
     '''
     if id:
-        obj = Model.query.get(id)
+        obj = Model.query.filter(Model.id==id, where).first()
         if not obj:
             return status(404)
         return status(200, data=obj.serialized)
-    return status(200, data=[obj.serialized for obj in Model.query.all()])
+    objs = Model.query.filter(where).all()
+    return status(200, data=[obj.serialized for obj in objs])
 
 def post_object(Model):
     '''

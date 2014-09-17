@@ -1,6 +1,7 @@
 *.swo
 *.swp
 *.db
+*.pyc
 config.py
 __pycache__
 virtualenv

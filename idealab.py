@@ -58,7 +58,7 @@ def status(n, **kw):
 
 # Flask initialization                                                        
 # ////////////////////////////////////////////////////////////////////////////
-app = Flask(__name__)
+app = application = Flask(__name__)
 app.config['DEBUG']                     = 'debug' in sys.argv
 app.config['APPLICATION_ROOT']          = APPLICATION_ROOT
 app.config['SECRET_KEY']                = SECRET_KEY

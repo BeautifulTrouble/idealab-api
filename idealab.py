@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Quality imports                                                             
 # ////////////////////////////////////////////////////////////////////////////
@@ -223,7 +223,8 @@ class Idea(ValidMixin, db.Model):
             'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
             'title': self.title,
-            'slug': re.sub(r'\W+', '-', self.title.lower()),
+            #'slug': re.sub(r'\s+', '-', self.title.lower()),
+            'slug': self.title.lower().replace(' ', '-'), # consistency beats aesthetic appeal
             'short_write_up': self.short_write_up,
         }
 

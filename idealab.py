@@ -320,7 +320,7 @@ def authorize(provider):
 @app.route('/ideas', methods=['GET'])
 @app.route('/ideas/<int:id>', methods=['GET'])
 def get_ideas(id=None):
-    clause = "published = '1'"
+    clause = "(published = '1' OR user_id = '%s')" % current_user.id
     if current_user.is_admin():
         clause = ''
     return get_objects(Idea, id, where=clause)
@@ -339,7 +339,7 @@ def update_idea(id):
 @app.route('/improvements', methods=['GET'])
 @app.route('/improvements/<int:id>', methods=['GET'])
 def get_improvements(id=None):
-    clause = "user_id = '{}'".format(current_user.id)
+    clause = "(user_id = '%s')" % current_user.id
     if current_user.is_admin():
         clause = ''
     return get_objects(Improvement, id, where=clause)

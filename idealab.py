@@ -133,6 +133,12 @@ def unauthorized_handler():
 def user_loader(user_id):
     return User.query.get(user_id)
 
+def logged_in():
+    return current_user.is_authenticated()
+
+def superuser():
+    "TODO"
+
 
 # Models                                                                      
 # ////////////////////////////////////////////////////////////////////////////
@@ -173,7 +179,7 @@ class User(UserMixin, db.Model):
         [setattr(self, k, v) for k,v in locals().items() if k != 'self']
 
     def update_from_request(self):
-        if current_user.is_authenticated():
+        if logged_in():
             j = request.json
             if 'name' in j or 'contact' in j:
                 name = j.get('name', '').strip()
@@ -184,9 +190,6 @@ class User(UserMixin, db.Model):
                     current_user.contact = contact
                 db.session.add(current_user)
                 db.session.commit()
-
-    def is_admin(self):
-        "TODO"
 
     @property
     def public_name(self):
@@ -268,14 +271,14 @@ db.create_all()
 # ////////////////////////////////////////////////////////////////////////////
 @app.route('/logout')
 def logout():
-    if current_user.is_authenticated():
+    if logged_in():
         logout_user()
     return oauth_redirect()
 
 @app.route('/login/<provider>')
 def login(provider):
     session['oauth_redirect'] = get_next_url()
-    if current_user.is_authenticated():
+    if logged_in():
         return oauth_redirect()
     p = oauth_providers.get(provider)
     if not p:
@@ -316,7 +319,7 @@ def authorize(provider):
 @app.route('/ideas/<int:id>', methods=['GET'])
 def get_ideas(id=None):
     clause = "published = '1'"
-    if current_user.is_admin():
+    if superuser():
         clause = ''
     return get_objects(Idea, id, where=clause)
 
@@ -335,7 +338,7 @@ def update_idea(id):
 @app.route('/improvements/<int:id>', methods=['GET'])
 def get_improvements(id=None):
     clause = "user_id = '{}'".format(current_user.id)
-    if current_user.is_admin():
+    if superuser():
         clause = ''
     return get_objects(Improvement, id, where=clause)
 
@@ -386,7 +389,7 @@ def post_object(Model):
     The user-writable object is POSTed here
     '''
     session['last_post'] = request.json
-    if not current_user.is_authenticated():
+    if not logged_in():
         return unauthorized_handler()
 
     # We'll accept name and contact from any source
@@ -403,7 +406,7 @@ def update_object(Model, id):
     '''
     The user-writable object is uPUTdated or DELETEed here
     '''
-    if not current_user.is_authenticated():
+    if not logged_in():
         return unauthorized_handler()
 
     # We'll accept name and contact from any source

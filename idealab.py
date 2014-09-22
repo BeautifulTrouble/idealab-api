@@ -230,8 +230,7 @@ class Idea(ValidMixin, db.Model):
             # Don't bother doing dates in js... they're awkward enough in python
             'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
-            #'slug': re.sub(r'\s+', '-', self.title.lower()),
-            'slug': self.title.lower().replace(' ', '-'), # consistency beats aesthetic appeal
+            'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U),
             'published': self.published,
 
             'title': self.title,

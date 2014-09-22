@@ -228,6 +228,7 @@ class Idea(ValidMixin, db.Model):
             'user_id': self.user_id,
             'contributors': [self.user.public_name],
             # Don't bother doing dates in js... they're awkward enough in python
+            'date': int(self.date.strftime('%s')) * 1000,
             'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
             'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U).strip('-'),

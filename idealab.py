@@ -233,6 +233,7 @@ class Idea(ValidMixin, db.Model):
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
             'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U).strip('-'),
             'published': self.published,
+            'votes': 0,
 
             'title': self.title,
             'short_write_up': self.short_write_up,

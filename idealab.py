@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+# ALL NEW USER ACCOUNT
 
 # Quality imports                                                             
 # ////////////////////////////////////////////////////////////////////////////
@@ -174,40 +175,62 @@ class ValidMixin(object):
 class User(UserMixin, db.Model):
     id = db.Column(db.Unicode(40), primary_key=True)
     name = db.Column(db.Unicode(500))
-    contact = db.Column(db.Unicode(500))
-    provider = db.Column(db.Unicode(50))
+    email = db.Column(db.Unicode(500))
 
-    def __init__(self, id, name, contact, provider):
-        [setattr(self, k, v) for k,v in locals().items() if k != 'self']
+    # For API migration
+    migrate = db.Column(db.Boolean, default=False)
 
-    def update_from_request(self):
-        if current_user.is_authenticated():
-            j = request.json
-            if 'name' in j or 'contact' in j:
-                name = j.get('name', '').strip()
-                if name: 
-                    current_user.name = name
-                contact = j.get('contact', '').strip()
-                if contact: 
-                    current_user.contact = contact
-                db.session.add(current_user)
-                db.session.commit()
-
-    @property
-    def public_name(self):
-        if not self.name:
-            if self.provider == 'twitter' and self.contact[:1] == '@':
-                return self.contact
-            # Anonymous people here ~~---v
-        return self.name
+    def __init__(self, name, email):
+        self.name = name
+        self.email = email
 
     @property
     def serialized(self):
         return {
-            'name': self.public_name,
-            'contact': self.contact,
-            'provider': self.provider,
+            'name': self.name,
+            'email': self.email,
+            # For API migration
+            'contact': self.email,
+            'provider': 'OAuth',
         }
+
+#class User(UserMixin, db.Model):
+#    id = db.Column(db.Unicode(40), primary_key=True)
+#    name = db.Column(db.Unicode(500))
+#    contact = db.Column(db.Unicode(500))
+#    provider = db.Column(db.Unicode(50))
+#
+#    def __init__(self, id, name, contact, provider):
+#        [setattr(self, k, v) for k,v in locals().items() if k != 'self']
+#
+#    def update_from_request(self):
+#        if current_user.is_authenticated():
+#            j = request.json
+#            if 'name' in j or 'contact' in j:
+#                name = j.get('name', '').strip()
+#                if name: 
+#                    current_user.name = name
+#                contact = j.get('contact', '').strip()
+#                if contact: 
+#                    current_user.contact = contact
+#                db.session.add(current_user)
+#                db.session.commit()
+#
+#    @property
+#    def public_name(self):
+#        if not self.name:
+#            if self.provider == 'twitter' and self.contact[:1] == '@':
+#                return self.contact
+#            # Anonymous people here ~~---v
+#        return self.name
+#
+#    @property
+#    def serialized(self):
+#        return {
+#            'name': self.public_name,
+#            'contact': self.contact,
+#            'provider': self.provider,
+#        }
 
 class Idea(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -226,7 +249,7 @@ class Idea(ValidMixin, db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'contributors': [self.user.public_name],
+            'contributors': [self.user.name],
             # Don't bother doing dates in js... they're awkward enough in python
             'date': int(self.date.strftime('%s')) * 1000,
             'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
@@ -396,7 +419,7 @@ def post_object(Model):
         return unauthorized_handler()
 
     # We'll accept name and contact from any source
-    current_user.update_from_request()
+    #current_user.update_from_request()
 
     obj = Model(request.json)
     if obj.is_valid:
@@ -413,7 +436,7 @@ def update_object(Model, id):
         return unauthorized_handler()
 
     # We'll accept name and contact from any source
-    current_user.update_from_request()
+    #current_user.update_from_request()
 
     obj = Model.query.get(id)
     if not obj:

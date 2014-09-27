@@ -313,6 +313,11 @@ def authorize(provider):
         user = User(user_id, provider, provider_id, name, contact)
         db.session.add(user)
         db.session.commit()
+    elif not user.provider_id:
+        # Post-launch schema changes left this empty for early users
+        user.provider_id = provider_id
+        db.session.add(user)
+        db.session.commit()
     login_user(user, remember=True)
     return oauth_redirect()
 

@@ -173,7 +173,7 @@ class ValidMixin(object):
         self.is_valid = True
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Unicode(40), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Unicode(500))
     email = db.Column(db.Unicode(500))
 
@@ -235,7 +235,7 @@ class User(UserMixin, db.Model):
 class Idea(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.relationship('User', backref=db.backref('ideas', lazy='dynamic'))
-    user_id = db.Column(db.Unicode, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     published = db.Column(db.Boolean, default=False)
 
@@ -265,7 +265,7 @@ class Idea(ValidMixin, db.Model):
 class Improvement(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.relationship('User', backref=db.backref('improvements', lazy='dynamic'))
-    user_id = db.Column(db.Unicode, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     published = db.Column(db.Boolean, default=False)
 
@@ -332,7 +332,7 @@ def authorize(provider):
     # Look up the user or create a new one and log them in
     user = User.query.get(user_id)
     if not user:
-        user = User(user_id, name, contact, provider)
+        user = User(name, contact)
         db.session.add(user)
         db.session.commit()
     login_user(user, remember=True)

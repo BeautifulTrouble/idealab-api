@@ -1,0 +1,6 @@
+#!/bin/bash
+
+USER=change
+HOST=solutions.thischangeseverything.org
+
+rsync ${USER}@${HOST}:idealab-api/idealab.db ./idealab.db.$(date +%F@%R)

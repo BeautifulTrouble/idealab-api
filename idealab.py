@@ -173,11 +173,12 @@ class ValidMixin(object):
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Unicode(40), primary_key=True)
+    provider = db.Column(db.Unicode(50))
+    provider_id = db.Column(db.Unicode(50))
     name = db.Column(db.Unicode(500))
     contact = db.Column(db.Unicode(500))
-    provider = db.Column(db.Unicode(50))
 
-    def __init__(self, id, name, contact, provider):
+    def __init__(self, id, provider, provider_id, name, contact):
         [setattr(self, k, v) for k,v in locals().items() if k != 'self']
 
     def update_from_request(self):
@@ -303,13 +304,13 @@ def authorize(provider):
         return oauth_redirect()
     session['oauth'] = resp
     # Retrieve id as well as name and email if possible
-    user_id, name, contact = p.user_info()
+    provider_id, name, contact = p.user_info()
     # Generate a unique id from the provider's user id
-    user_id = sha1(user_id + p.name)
+    user_id = sha1(provider_id + provider)
     # Look up the user or create a new one and log them in
     user = User.query.get(user_id)
     if not user:
-        user = User(user_id, name, contact, provider)
+        user = User(user_id, provider, provider_id, name, contact)
         db.session.add(user)
         db.session.commit()
     login_user(user, remember=True)

@@ -130,8 +130,8 @@ def unauthorized_handler():
     return status(401)
 
 @login_manager.user_loader
-def user_loader(user_id):
-    return User.query.get(user_id)
+def user_loader(id):
+    return User.query.get(id)
 
 def is_admin(self):
     "TODO"
@@ -172,13 +172,14 @@ class ValidMixin(object):
         self.is_valid = True
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Unicode(40), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    local_id = db.Column(db.Unicode(40))
     provider = db.Column(db.Unicode(50))
     provider_id = db.Column(db.Unicode(50))
     name = db.Column(db.Unicode(500))
     contact = db.Column(db.Unicode(500))
 
-    def __init__(self, id, provider, provider_id, name, contact):
+    def __init__(self, local_id, provider, provider_id, name, contact):
         [setattr(self, k, v) for k,v in locals().items() if k != 'self']
 
     def update_from_request(self):
@@ -213,7 +214,7 @@ class User(UserMixin, db.Model):
 class Idea(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.relationship('User', backref=db.backref('ideas', lazy='dynamic'))
-    user_id = db.Column(db.Unicode, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     published = db.Column(db.Boolean, default=False)
 
@@ -226,7 +227,7 @@ class Idea(ValidMixin, db.Model):
     def serialized(self):
         return {
             'id': self.id,
-            'user_id': self.user_id,
+            'user_id': self.user.id,
             'contributors': [self.user.public_name],
             # Don't bother doing dates in js... they're awkward enough in python
             'date': int(self.date.strftime('%s')) * 1000,
@@ -243,7 +244,7 @@ class Idea(ValidMixin, db.Model):
 class Improvement(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.relationship('User', backref=db.backref('improvements', lazy='dynamic'))
-    user_id = db.Column(db.Unicode, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     published = db.Column(db.Boolean, default=False)
 
@@ -259,7 +260,7 @@ class Improvement(ValidMixin, db.Model):
     def serialized(self):
         return {
             'id': self.id,
-            'user_id': self.user_id,
+            'user_id': self.user.id,
             'published': self.published,
 
             'module': self.module,
@@ -306,11 +307,11 @@ def authorize(provider):
     # Retrieve id as well as name and email if possible
     provider_id, name, contact = p.user_info()
     # Generate a unique id from the provider's user id
-    user_id = sha1(provider_id + provider)
+    local_id = sha1(provider_id + provider)
     # Look up the user or create a new one and log them in
-    user = User.query.get(user_id)
+    user = User.query.filter(User.local_id==local_id).first()
     if not user:
-        user = User(user_id, provider, provider_id, name, contact)
+        user = User(local_id, provider, provider_id, name, contact)
         db.session.add(user)
         db.session.commit()
     elif not user.provider_id:

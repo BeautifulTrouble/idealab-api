@@ -12,6 +12,7 @@ from flask.ext.login import LoginManager, AnonymousUserMixin, UserMixin
 from flask.ext.login import current_user, login_required, login_user, logout_user
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask_oauthlib.client import OAuth, OAuthException
+from werkzeug.contrib.cache import SimpleCache
 from config import (
     APPLICATION_ROOT,
     SECRET_KEY,
@@ -73,6 +74,12 @@ app._route, app.route = app.route, lambda *a, **kw: app._route(
 def four_oh_four(error):
     return status(404, message="You've reached an unknown corner of this universe")
 
+
+# Caches
+# ////////////////////////////////////////////////////////////////////////////
+vote_cache = SimpleCache()
+
+
 # OAuth providers                                                             
 # ////////////////////////////////////////////////////////////////////////////
 oauth = OAuth()
@@ -133,12 +140,9 @@ def unauthorized_handler():
 def user_loader(id):
     return User.query.get(id)
 
-def is_admin(self):
-    "TODO"
-
-# Patch user classes
-UserMixin.is_admin = is_admin
-AnonymousUserMixin.is_admin = is_admin
+# Patch anonymous user object so we can perform basic
+# checks without ensuring a user is logged in
+AnonymousUserMixin.admin = False
 AnonymousUserMixin.id = -1
 
 
@@ -178,6 +182,7 @@ class User(UserMixin, db.Model):
     provider_id = db.Column(db.Unicode(50))
     name = db.Column(db.Unicode(500))
     contact = db.Column(db.Unicode(500))
+    admin = db.Column(db.Boolean, default=False)
 
     def __init__(self, local_id, provider, provider_id, name, contact):
         [setattr(self, k, v) for k,v in locals().items() if k != 'self']
@@ -209,6 +214,7 @@ class User(UserMixin, db.Model):
             'name': self.public_name,
             'contact': self.contact,
             'provider': self.provider,
+            'admin': self.admin,
         }
 
 class Idea(ValidMixin, db.Model):
@@ -235,11 +241,33 @@ class Idea(ValidMixin, db.Model):
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
             'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U).strip('-'),
             'published': self.published,
-            'votes': 0,
+            'votes': IdeaVote.cache().get(self.id, 0),
+            'loved': bool(IdeaVote.query.get((current_user.id, self.id))),
 
             'title': self.title,
             'short_write_up': self.short_write_up,
         }
+
+class IdeaVote(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    idea_id = db.Column(db.Integer, db.ForeignKey('idea.id'), primary_key=True)
+
+    def __init__(self, user_id, idea_id):
+        self.user_id = user_id
+        self.idea_id = idea_id
+
+    @staticmethod
+    def cache(update_id=None, offset=0):
+        counts = vote_cache.get('ideas')
+        if counts is None:
+            counts = {obj.id: IdeaVote.query.filter(IdeaVote.idea_id==obj.id).count()
+                     for obj in Idea.query.all()}
+            vote_cache.set('ideas', counts, timeout=30 * 1440)
+        elif update_id is not None:
+            # Don't do this calculation if the counts are already freshly queried
+            counts[update_id] += offset
+            vote_cache.set('ideas', counts, timeout=30 * 1440)
+        return counts
 
 class Improvement(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -329,7 +357,7 @@ def authorize(provider):
 @app.route('/ideas/<int:id>', methods=['GET'])
 def get_ideas(id=None):
     clause = "(published = '1' OR user_id = '%s')" % current_user.id
-    if current_user.is_admin():
+    if current_user.admin:
         clause = ''
     return get_objects(Idea, id, where=clause)
 
@@ -348,7 +376,7 @@ def update_idea(id):
 @app.route('/improvements/<int:id>', methods=['GET'])
 def get_improvements(id=None):
     clause = "(user_id = '%s')" % current_user.id
-    if current_user.is_admin():
+    if current_user.admin:
         clause = ''
     return get_objects(Improvement, id, where=clause)
 
@@ -378,6 +406,27 @@ def get_last():
         session['last_post'] = {}
         return status(201)
     return status(200, data=session.get('last_post'))
+
+
+# /love
+# /////////////////////////////////////////////////////////
+@app.route('/love/idea/<int:idea_id>', methods=['PUT'])
+@login_required
+def toggle_love(idea_id):
+    #TODO: Simplify these queries
+    vote = IdeaVote.query.get((current_user.id, idea_id))
+    if vote:
+        db.session.delete(vote)
+        db.session.commit()
+        IdeaVote.cache(idea_id, offset=-1)
+    elif Idea.query.get(idea_id):
+        idea = IdeaVote(current_user.id, idea_id)
+        db.session.add(idea)
+        db.session.commit()
+        IdeaVote.cache(idea_id, offset=1)
+    else:
+        return status(404)
+    return status(200)
 
 
 # Generic RESTfulness

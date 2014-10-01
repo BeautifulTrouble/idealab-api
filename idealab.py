@@ -257,16 +257,15 @@ class IdeaVote(db.Model):
         self.idea_id = idea_id
 
     @staticmethod
-    def cache(update_id=None, offset=0):
+    def cache(update_id=None):
         counts = vote_cache.get('ideas')
         if counts is None:
             counts = {obj.id: IdeaVote.query.filter(IdeaVote.idea_id==obj.id).count()
                      for obj in Idea.query.all()}
-            vote_cache.set('ideas', counts, timeout=30 * 1440)
+            vote_cache.set('ideas', counts, timeout=60 * 5)
         elif update_id is not None:
-            # Don't do this calculation if the counts are already freshly queried
-            counts[update_id] += offset
-            vote_cache.set('ideas', counts, timeout=30 * 1440)
+            counts[update_id] = IdeaVote.query.filter(IdeaVote.idea_id==update_id).count()
+            vote_cache.set('ideas', counts, timeout=60 * 5)
         return counts
 
 class Improvement(ValidMixin, db.Model):
@@ -418,12 +417,12 @@ def toggle_love(idea_id):
     if vote:
         db.session.delete(vote)
         db.session.commit()
-        IdeaVote.cache(idea_id, offset=-1)
+        IdeaVote.cache(idea_id)
     elif Idea.query.get(idea_id):
         idea = IdeaVote(current_user.id, idea_id)
         db.session.add(idea)
         db.session.commit()
-        IdeaVote.cache(idea_id, offset=1)
+        IdeaVote.cache(idea_id)
     else:
         return status(404)
     return status(200)

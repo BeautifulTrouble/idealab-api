@@ -473,7 +473,7 @@ def update_object(Model, id):
     obj = Model.query.get(id)
     if not obj:
         return status(404)
-    if obj.user != current_user:
+    if obj.user != current_user and not current_user.admin:
         return status(401)
     if request.method == 'PUT':
         obj.update(request.json)

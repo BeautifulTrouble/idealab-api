@@ -6,6 +6,7 @@ import datetime
 import hashlib
 import re
 import sys
+import time
 from flask import Flask
 from flask import g, jsonify, redirect, request, session, url_for
 from flask.ext.login import LoginManager, AnonymousUserMixin, UserMixin
@@ -355,11 +356,9 @@ def authorize(provider):
 @app.route('/ideas', methods=['GET'])
 @app.route('/ideas/<int:id>', methods=['GET'])
 def get_ideas(id=None):
-    try:
-        if 'last_post' in session:
-            with open('/tmp/last.{:.3f}'.format(time.time() % 1000)) as f:
-                f.write(session['last_post'])
-    except: pass
+    if 'last_post' in session:
+        with open('/tmp/last.{:.3f}'.format(time.time() % 1000)) as f:
+            f.write(session['last_post'])
 
     clause = "(published = '1' OR user_id = '%s')" % current_user.id
     if current_user.admin:

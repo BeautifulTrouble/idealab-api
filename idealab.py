@@ -355,6 +355,12 @@ def authorize(provider):
 @app.route('/ideas', methods=['GET'])
 @app.route('/ideas/<int:id>', methods=['GET'])
 def get_ideas(id=None):
+    try:
+        if 'last_post' in session:
+            with open('/tmp/last.{:.3f}'.format(time.time() % 1000)) as f:
+                f.write(session['last_post'])
+    except: pass
+
     clause = "(published = '1' OR user_id = '%s')" % current_user.id
     if current_user.admin:
         clause = ''

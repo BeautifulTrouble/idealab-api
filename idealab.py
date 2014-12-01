@@ -235,8 +235,6 @@ class Idea(ValidMixin, db.Model):
 
             'title': self.title,
             'short_write_up': self.short_write_up,
-            'name': self.name,
-            'contact': self.contact,
         }
 
 class IdeaVote(db.Model):

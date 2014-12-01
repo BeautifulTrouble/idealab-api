@@ -356,10 +356,6 @@ def authorize(provider):
 @app.route('/ideas', methods=['GET'])
 @app.route('/ideas/<int:id>', methods=['GET'])
 def get_ideas(id=None):
-    if 'last_post' in session:
-        with open('/tmp/last.{:.3f}'.format(time.time() % 1000), 'w') as f:
-            f.write(str(session['last_post']))
-
     clause = "(published = '1' OR user_id = '%s')" % current_user.id
     if current_user.admin:
         clause = ''
@@ -401,17 +397,6 @@ def get_me():
     return status(200, data=current_user.serialized)
 
 
-# /last
-# /////////////////////////////////////////////////////////
-@app.route('/last', methods=['GET', 'POST'])
-@login_required
-def get_last():
-    if request.method == 'POST':
-        session['last_post'] = {}
-        return status(201)
-    return status(200, data=session.get('last_post'))
-
-
 # /love
 # /////////////////////////////////////////////////////////
 @app.route('/love/idea/<int:idea_id>', methods=['PUT'])
@@ -451,7 +436,6 @@ def post_object(Model):
     '''
     The user-writable object is POSTed here
     '''
-    session['last_post'] = request.json
     if not current_user.is_authenticated():
         return unauthorized_handler()
 

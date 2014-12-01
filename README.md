@@ -2,14 +2,12 @@
 
 ##Installation
 
-* First get a Python 3.x and git the repo
-
 * Run around creating a million little OAuth secrets and keys to fill in config.py from the provided example file, or get one from the secret location
 
 * Create a virtual environment called virtualenv
 
 ```shell
-python3 -m venv virtualenv
+python -m venv virtualenv
 ```
 
 * Activate it with the provided symlink or however you wanted it

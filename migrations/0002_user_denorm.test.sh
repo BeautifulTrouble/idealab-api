@@ -3,17 +3,12 @@ main () {
 #############################################################################
 
 compare Ideas\
-    'SELECT user.name,idea.title,idea.short_write_up FROM user LEFT JOIN idea ON idea.user_id=user.id;'\
-    'SELECT user.name,idea.title,idea.short_write_up FROM user LEFT JOIN idea ON idea.user_id=user.id;'
+    'SELECT idea.id,user.name,user.contact FROM idea LEFT JOIN user ON idea.user_id=user.id;' \
+    'SELECT id,name,contact FROM idea;'
 
 compare Improvements\
-    'SELECT user.name,improvement.content FROM user LEFT JOIN improvement ON improvement.user_id=user.id;'\
-    'SELECT user.name,improvement.content FROM user LEFT JOIN improvement ON improvement.user_id=user.id;'
-
-compare Users\
-    'SELECT id,provider,provider_id FROM user;'\
-    'SELECT local_id,provider,provider_id FROM user;'
-
+    'SELECT improvement.id,user.contact FROM improvement LEFT JOIN user ON improvement.user_id=user.id;' \
+    'SELECT id,contact FROM improvement;'
 
 #############################################################################
 }

@@ -5,3 +5,6 @@
 config.py
 __pycache__
 virtualenv
+migrations/*before
+migrations/*after
+backups

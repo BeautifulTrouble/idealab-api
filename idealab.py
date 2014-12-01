@@ -39,6 +39,12 @@ def oauth_redirect():
 def sha1(s):
     return hashlib.sha1(s.encode('utf8')).hexdigest()
 
+def public_name(obj):
+    if not obj.name and obj.contact.startswith('@'):
+        return obj.contact
+        # Anonymous people here ~~---v
+    return obj.name
+
 # JSON responses to accompany HTTP status codes
 def status(n, **kw):
     kw['message'] = kw.get('message') or {
@@ -188,31 +194,10 @@ class User(UserMixin, db.Model):
     def __init__(self, local_id, provider, provider_id, name, contact):
         [setattr(self, k, v) for k,v in locals().items() if k != 'self']
 
-    def update_from_request(self):
-        if current_user.is_authenticated():
-            j = request.json
-            if 'name' in j or 'contact' in j:
-                name = j.get('name', '').strip()
-                if name: 
-                    current_user.name = name
-                contact = j.get('contact', '').strip()
-                if contact: 
-                    current_user.contact = contact
-                db.session.add(current_user)
-                db.session.commit()
-
-    @property
-    def public_name(self):
-        if not self.name:
-            if self.provider == 'twitter' and self.contact[:1] == '@':
-                return self.contact
-            # Anonymous people here ~~---v
-        return self.name
-
     @property
     def serialized(self):
         return {
-            'name': self.public_name,
+            'name': public_name(self),
             'contact': self.contact,
             'provider': self.provider,
             'admin': self.admin,
@@ -227,19 +212,22 @@ class Idea(ValidMixin, db.Model):
 
     title = db.Column(db.Unicode(500))
     short_write_up = db.Column(db.Unicode(5000))
+    name = db.Column(db.Unicode(500))
+    contact = db.Column(db.Unicode(500))
 
-    initialize = 'title', 'short_write_up'
+    initialize = 'title', 'short_write_up', 'name', 'contact'
 
     @property
     def serialized(self):
         return {
             'id': self.id,
             'user_id': self.user.id,
-            'contributors': [self.user.public_name],
-            # Don't bother doing dates in js... they're awkward enough in python
+            'contributors': [public_name(self)],
+            
             'date': int(self.date.strftime('%s')) * 1000,
             'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
             'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
+
             'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U).strip('-'),
             'published': self.published,
             'votes': IdeaVote.cache().get(self.id, 0),
@@ -247,6 +235,8 @@ class Idea(ValidMixin, db.Model):
 
             'title': self.title,
             'short_write_up': self.short_write_up,
+            'name': self.name,
+            'contact': self.contact,
         }
 
 class IdeaVote(db.Model):
@@ -276,13 +266,13 @@ class Improvement(ValidMixin, db.Model):
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     published = db.Column(db.Boolean, default=False)
 
-    # Don't overcomplicate this database with foreign keys
     module = db.Column(db.Unicode(500))
     link = db.Column(db.Unicode(5000))
     type = db.Column(db.Unicode(50))
     content = db.Column(db.Unicode(5000))
+    contact = db.Column(db.Unicode(500))
 
-    initialize = 'module', 'link', 'type', 'content'
+    initialize = 'module', 'link', 'type', 'content', 'contact'
 
     @property
     def serialized(self):
@@ -295,6 +285,7 @@ class Improvement(ValidMixin, db.Model):
             'link': self.link,
             'type': self.type,
             'content': self.content,
+            'contact': self.contact,
         }
 
 db.create_all()
@@ -439,9 +430,6 @@ def post_object(Model):
     if not current_user.is_authenticated():
         return unauthorized_handler()
 
-    # We'll accept name and contact from any source
-    current_user.update_from_request()
-
     obj = Model(request.json)
     if obj.is_valid:
         db.session.add(obj)
@@ -455,9 +443,6 @@ def update_object(Model, id):
     '''
     if not current_user.is_authenticated():
         return unauthorized_handler()
-
-    # We'll accept name and contact from any source
-    current_user.update_from_request()
 
     obj = Model.query.get(id)
     if not obj:

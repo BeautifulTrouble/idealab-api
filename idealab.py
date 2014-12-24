@@ -91,6 +91,13 @@ app._route, app.route = app.route, lambda *a, **kw: app._route(
 def four_oh_four(error):
     return status(404, message="You've reached an unknown corner of this universe")
 
+@app.errorhandler(403)
+def four_oh_three(error):
+    # Forbidden admin pages should always redirect to the login page
+    if request.path.startswith('/admin/'):
+        return redirect('/admin')
+    return status(403)
+
 
 # Caches
 # ////////////////////////////////////////////////////////////////////////////

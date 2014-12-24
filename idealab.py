@@ -462,8 +462,8 @@ admin.add_view(UserAdmin(User, db.session, name="Users"))
 @app.route('/ideas/<int:id>', methods=['GET'])
 def get_ideas(id=None):
     clause = "(published = '1' OR user_id = '%s')" % current_user.id
-    if current_user.admin:
-        clause = ''
+    #if current_user.admin:
+    #    clause = ''
     return get_objects(Idea, id, where=clause)
 
 @app.route('/ideas', methods=['POST'])
@@ -500,6 +500,7 @@ def update_improvement(id):
 @login_required
 def get_me():
     return status(200, data=current_user.serialized)
+
 
 # /love
 # /////////////////////////////////////////////////////////

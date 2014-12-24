@@ -1,0 +1,44 @@
+{% extends 'admin/index.html' %}
+
+{% block body %}
+    {{ super() }}
+    <div class="row">
+        <div class="col-xs-10 col-xs-offset-1">
+            <h1><strong>Beautiful Solutions Lab Admin</strong></h1>
+            {% if admin %}
+            <p class="lead">Current site statistics:</p>
+            <div class="row">
+                <div class="col-xs-12 col-lg-4">
+                    <div class="alert alert-success">
+                        <a class="alert-link" href="/admin/idea"><h3><span class="glyphicon glyphicon-eye-open"></span> Ideas <span class="label label-success pull-right ideas">{{ ideas }}</span></h3></a>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-lg-4">
+                    <div class="alert alert-info">
+                        <a class="alert-link" href="/admin/improvement"><h3><span class="glyphicon glyphicon-wrench"></span> Improvements <span class="label label-info pull-right improvements">{{ improvements }}</span></h3></a>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-lg-4">
+                    <div class="alert alert-warning">
+                        <a class="alert-link" href="/admin/user"><h3><span class="glyphicon glyphicon-user"></span> Users <span class="label label-warning pull-right users">{{ users }}</span></h3></a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p class="lead">Please login to continue.</p>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="well">
+                        <p>Select the same OAuth provider you normally use on the site:</p>
+                        <a href="/api/login/twitter?next=/admin" class="btn btn-info btn-lg"><span class="glyphicon glyphicon-user"></span> Twitter</a>&nbsp;&nbsp;
+                        <a href="/api/login/facebook?next=/admin" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-user"></span> Facebook</a>&nbsp;&nbsp;
+                        <a href="/api/login/google?next=/admin" class="btn btn-danger btn-lg"><span class="glyphicon glyphicon-user"></span> Google</a>&nbsp;&nbsp;
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <a class="btn btn-success" href="/#idealab"><span class="glyphicon glyphicon-arrow-left"></span>&nbsp; Back to the Lab</a>
+        </div>
+    </div>
+{% endblock %}
+

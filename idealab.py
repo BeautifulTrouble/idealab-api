@@ -8,11 +8,17 @@ import re
 import sys
 import time
 from flask import Flask
-from flask import g, jsonify, redirect, request, session, url_for
+from flask import escape, g, jsonify, redirect, request, session, url_for
+from flask.ext.admin import Admin, AdminIndexView
+from flask.ext.admin import expose
+from flask.ext.admin.contrib import sqla
 from flask.ext.login import LoginManager, AnonymousUserMixin, UserMixin
 from flask.ext.login import current_user, login_required, login_user, logout_user
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask_oauthlib.client import OAuth, OAuthException
+from jinja2 import Markup
+from wtforms.fields.simple import TextAreaField
+from wtforms.validators import required
 from werkzeug.contrib.cache import SimpleCache
 from config import (
     APPLICATION_ROOT,
@@ -44,6 +50,10 @@ def public_name(obj):
         return obj.contact
         # Anonymous people here ~~---v
     return obj.name
+
+def n_words(n, string):
+    words = string.split()
+    return ' '.join(words[:n]) + ('...' if len(words) > n else '')
 
 # JSON responses to accompany HTTP status codes
 def status(n, **kw):
@@ -169,9 +179,10 @@ class ValidMixin(object):
     is_valid = False
     initialize = ()
 
-    def __init__(self, dct):
-        self.user = current_user
-        self.update(dct)
+    def __init__(self, dct=None):
+        if dct is not None:
+            self.user = current_user
+            self.update(dct)
 
     def update(self, dct):
         for column_name in self.initialize:
@@ -194,14 +205,19 @@ class User(UserMixin, db.Model):
     def __init__(self, local_id, provider, provider_id, name, contact):
         [setattr(self, k, v) for k,v in locals().items() if k != 'self']
 
+    def __repr__(self):
+        return u'{} ({})'.format(self.name or self.contact, self.provider)
+
     @property
     def serialized(self):
-        return {
-            'name': public_name(self),
-            'contact': self.contact,
-            'provider': self.provider,
-            'admin': self.admin,
-        }
+        try:
+            return {
+                'name': public_name(self),
+                'contact': self.contact,
+                'provider': self.provider,
+                'admin': self.admin,
+            }
+        except: return {}
 
 class Idea(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -217,25 +233,30 @@ class Idea(ValidMixin, db.Model):
 
     initialize = 'title', 'short_write_up', 'name', 'contact'
 
+    def __repr__(self):
+        return self.title
+
     @property
     def serialized(self):
-        return {
-            'id': self.id,
-            'user_id': self.user.id,
-            'contributors': [public_name(self)],
-            
-            'date': int(self.date.strftime('%s')) * 1000,
-            'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
-            'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
+        try:
+            return {
+                'id': self.id,
+                'user_id': self.user.id,
+                'contributors': [public_name(self)],
+                
+                'date': int(self.date.strftime('%s')) * 1000,
+                'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
+                'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
 
-            'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U).strip('-'),
-            'published': self.published,
-            'votes': IdeaVote.cache().get(self.id, 0),
-            'loved': bool(IdeaVote.query.get((current_user.id, self.id))),
+                'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U).strip('-'),
+                'published': self.published,
+                'votes': IdeaVote.cache().get(self.id, 0),
+                'loved': bool(IdeaVote.query.get((current_user.id, self.id))),
 
-            'title': self.title,
-            'short_write_up': self.short_write_up,
-        }
+                'title': self.title,
+                'short_write_up': self.short_write_up,
+            }
+        except: return {}
 
 class IdeaVote(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
@@ -272,19 +293,24 @@ class Improvement(ValidMixin, db.Model):
 
     initialize = 'module', 'link', 'type', 'content', 'contact'
 
+    def __repr__(self):
+        return u'{} ({})'.format(self.type, self.module)
+
     @property
     def serialized(self):
-        return {
-            'id': self.id,
-            'user_id': self.user.id,
-            'published': self.published,
+        try: 
+            return {
+                'id': self.id,
+                'user_id': self.user.id,
+                'published': self.published,
 
-            'module': self.module,
-            'link': self.link,
-            'type': self.type,
-            'content': self.content,
-            'contact': self.contact,
-        }
+                'module': self.module,
+                'link': self.link,
+                'type': self.type,
+                'content': self.content,
+                'contact': self.contact,
+            }
+        except: return {}
 
 db.create_all()
 
@@ -340,6 +366,96 @@ def authorize(provider):
     return oauth_redirect()
 
 
+# Admin
+# ////////////////////////////////////////////////////////////////////////////
+class BaseAdmin(AdminIndexView):
+    @expose('/')
+    def index(self):
+        return self.render('admin/idealab.html', 
+            admin=current_user.admin,
+            users=User.query.count(), 
+            ideas=Idea.query.count(), 
+            improvements=Improvement.query.count(),
+        )
+
+class IdeaAdmin(sqla.ModelView):
+    def is_accessible(self):
+        return current_user.admin
+
+    column_list = ('date', 'published', 'title', 'short_write_up', 'name', 'contact')
+    column_filters = ('published',)
+    column_default_sort = ('date', True)
+    column_formatters = {
+        'date': lambda v,c,m,n: m.date.strftime('%B %e, %Y'),
+        'short_write_up': lambda v,c,m,n: n_words(50, m.short_write_up or ''),
+        'title': lambda v,c,m,n: Markup(
+            u'<a href="{}">{}</a>'.format(url_for('.edit_view', id=m.id), escape(m.title))
+        ),
+    }
+    column_searchable_list = ('name', 'contact', 'title', 'short_write_up')
+    form_args = {
+        'user': {'validators': [required()]},
+        'date': {'validators': [required()]},
+        'title': {'validators': [required()]},
+        'short_write_up': {'validators': [required()]},
+        'name': {'validators': [required()]},
+        'contact': {'validators': [required()]},
+    }
+    form_overrides = {
+        'short_write_up': TextAreaField,
+    }
+    form_widget_args = {
+        'published': {'style': 'width: 34px;'},
+        'short_write_up': {'rows': 10},
+    }
+
+class ImprovementAdmin(sqla.ModelView):
+    def is_accessible(self):
+        return current_user.admin
+
+    can_create = False
+    column_list = ('date', 'type', 'module', 'content', 'contact')
+    column_default_sort = ('date', True)
+    column_searchable_list = ('module', 'type', 'content', 'contact')
+    column_formatters = {
+        'date': lambda v,c,m,n: m.date.strftime('%B %e, %Y'),
+        'content': lambda v,c,m,n: n_words(50, m.content or ''),
+        'type': lambda v,c,m,n: Markup(
+            u'<a href="{}">{}</a>'.format(url_for('.edit_view', id=m.id), m.type)
+        ),
+        # In order for this to work, we need a unified url scheme for modules existing anywhere
+        #'module': lambda v,c,m,n: Markup('<a href="/#idealab/submitted/{0}">{0}</a>'.format(m.module))
+    }
+    form_args = {
+        'user': {'validators': [required()]},
+        'date': {'validators': [required()]},
+    }
+    form_excluded_columns = ('published',)
+    form_overrides = {
+        'content': TextAreaField,
+    }
+    form_widget_args = {
+        'content': {'rows': 10},
+        'module': {'readonly': True},
+        'type': {'readonly': True},
+    }
+
+class UserAdmin(sqla.ModelView):
+    def is_accessible(self):
+        return current_user.admin
+
+    can_edit = False
+    can_create = False
+    can_delete = False
+    column_list = ('id', 'name', 'contact', 'provider', 'provider_id', 'admin',)
+    column_default_sort = 'name'
+    column_searchable_list = ('name', 'contact', 'provider', 'provider_id')
+
+admin = Admin(app, name="Lab Admin", index_view=BaseAdmin(name='Dashboard'), template_mode='bootstrap3')
+admin.add_view(IdeaAdmin(Idea, db.session, name="Ideas"))
+admin.add_view(ImprovementAdmin(Improvement, db.session, name="Improvements"))
+admin.add_view(UserAdmin(User, db.session, name="Users"))
+
 # /ideas 
 # /////////////////////////////////////////////////////////
 @app.route('/ideas', methods=['GET'])
@@ -384,7 +500,6 @@ def update_improvement(id):
 @login_required
 def get_me():
     return status(200, data=current_user.serialized)
-
 
 # /love
 # /////////////////////////////////////////////////////////

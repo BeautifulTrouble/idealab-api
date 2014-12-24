@@ -382,6 +382,7 @@ class IdeaAdmin(sqla.ModelView):
     def is_accessible(self):
         return current_user.admin
 
+    action_disallowed_list = ['delete']
     column_list = ('date', 'published', 'title', 'short_write_up', 'name', 'contact')
     column_filters = ('published',)
     column_default_sort = ('date', True)
@@ -413,6 +414,7 @@ class ImprovementAdmin(sqla.ModelView):
     def is_accessible(self):
         return current_user.admin
 
+    action_disallowed_list = ['delete']
     can_create = False
     column_list = ('date', 'type', 'module', 'content', 'contact')
     column_default_sort = ('date', True)

@@ -1,0 +1,17 @@
+{% extends admin_base_template %}
+
+{% block brand %}
+<a class="navbar-brand" href="/admin"><strong>{{ admin_view.admin.name }}</strong></a>
+{% endblock %}
+
+
+{% block menu_links %}
+{{ super() }}
+<ul class="nav navbar-right">
+    <li>
+        <form action="/api/logout">
+            <button class="btn btn-warning navbar-btn">Log out&nbsp;<span class="glyphicon glyphicon-remove" style="color: white;"></span></button>&nbsp;&nbsp;
+        </form>
+    </li>
+</ul>
+{% endblock %}

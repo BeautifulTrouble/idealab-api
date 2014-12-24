@@ -1,4 +1,4 @@
-{% extends 'admin/index.html' %}
+{% extends 'admin/master.html' %}
 
 {% block body %}
     {{ super() }}
@@ -24,8 +24,6 @@
                     </div>
                 </div>
             </div>
-            <a class="btn btn-success" href="/#idealab"><span class="glyphicon glyphicon-arrow-left"></span>&nbsp; Back to the Lab</a>&nbsp;&nbsp;
-            <a class="btn btn-warning" href="/api/logout?next=/admin">Log out&nbsp; <span class="glyphicon glyphicon-remove"></span></a>&nbsp;&nbsp;
             {% else %}
             <p class="lead">Please login to continue.</p>
             <div class="row">
@@ -38,8 +36,8 @@
                     </div>
                 </div>
             </div>
-            <a class="btn btn-success" href="/#idealab"><span class="glyphicon glyphicon-arrow-left"></span>&nbsp; Back to the Lab</a>&nbsp;&nbsp;
             {% endif %}
+            <a class="btn btn-success" href="/#idealab"><span class="glyphicon glyphicon-arrow-left"></span>&nbsp; Back to the Lab</a>&nbsp;&nbsp;
         </div>
     </div>
 {% endblock %}

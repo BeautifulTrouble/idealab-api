@@ -423,7 +423,7 @@ class ImprovementAdmin(sqla.ModelView):
 
     action_disallowed_list = ['delete']
     can_create = False
-    column_list = ('date', 'type', 'module', 'content', 'contact')
+    column_list = ('date', 'published', 'type', 'module', 'content', 'contact')
     column_default_sort = ('date', True)
     column_searchable_list = ('module', 'type', 'content', 'contact')
     column_formatters = {
@@ -439,7 +439,6 @@ class ImprovementAdmin(sqla.ModelView):
         'user': {'validators': [required()]},
         'date': {'validators': [required()]},
     }
-    form_excluded_columns = ('published',)
     form_overrides = {
         'content': TextAreaField,
     }
@@ -447,6 +446,7 @@ class ImprovementAdmin(sqla.ModelView):
         'content': {'rows': 10},
         'module': {'readonly': True},
         'type': {'readonly': True},
+        'published': {'style': 'width: 34px;'},
     }
 
 class UserAdmin(sqla.ModelView):

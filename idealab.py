@@ -311,6 +311,10 @@ class Improvement(ValidMixin, db.Model):
                 'user_id': self.user.id,
                 'published': self.published,
 
+                'date': int(self.date.strftime('%s')) * 1000,
+                'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
+                'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
+
                 'module': self.module,
                 'link': self.link,
                 'type': self.type,

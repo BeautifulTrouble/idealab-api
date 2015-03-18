@@ -174,6 +174,7 @@ AnonymousUserMixin.id = -1
 # ////////////////////////////////////////////////////////////////////////////
 db = SQLAlchemy(app)
 
+
 class ValidMixin(object):
     '''
     This model mixin provides an __init__ method which aids in the creation
@@ -199,6 +200,7 @@ class ValidMixin(object):
             length = getattr(self.__class__, column_name).type.length
             setattr(self, column_name, dct[column_name].strip()[:length])
         self.is_valid = True
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -226,6 +228,7 @@ class User(UserMixin, db.Model):
             }
         except: return {}
 
+
 class Idea(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.relationship('User', backref=db.backref('ideas', lazy='dynamic'))
@@ -248,7 +251,6 @@ class Idea(ValidMixin, db.Model):
         try:
             return {
                 'id': self.id,
-                'user_id': self.user.id,
                 'contributors': [public_name(self)],
                 
                 'date': int(self.date.strftime('%s')) * 1000,
@@ -264,6 +266,7 @@ class Idea(ValidMixin, db.Model):
                 'short_write_up': self.short_write_up,
             }
         except: return {}
+
 
 class IdeaVote(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
@@ -284,6 +287,7 @@ class IdeaVote(db.Model):
             counts[update_id] = IdeaVote.query.filter(IdeaVote.idea_id==update_id).count()
             vote_cache.set('ideas', counts, timeout=60 * 5)
         return counts
+
 
 class Improvement(ValidMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -308,7 +312,7 @@ class Improvement(ValidMixin, db.Model):
         try: 
             return {
                 'id': self.id,
-                'user_id': self.user.id,
+                'username': public_name(self.user),
                 'published': self.published,
 
                 'date': int(self.date.strftime('%s')) * 1000,
@@ -322,6 +326,7 @@ class Improvement(ValidMixin, db.Model):
                 'contact': self.contact,
             }
         except: return {}
+
 
 db.create_all()
 

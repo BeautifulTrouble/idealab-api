@@ -388,6 +388,7 @@ class BaseAdmin(AdminIndexView):
     @expose('/')
     def index(self):
         return self.render('admin/idealab.html', 
+            index_page=True,
             admin=current_user.admin,
             users=User.query.count(), 
             ideas=Idea.query.count(), 

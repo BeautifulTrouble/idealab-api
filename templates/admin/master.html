@@ -8,7 +8,7 @@
 {% block menu_links %}
 {{ super() }}
 <ul class="nav navbar-right">
-    {% if admin %}
+    {% if (not index_page) or admin %}
     <li>
         <form action="/api/logout">
             <button class="btn btn-warning navbar-btn">Log out&nbsp;<span class="glyphicon glyphicon-remove" style="color: white;"></span></button>&nbsp;&nbsp;

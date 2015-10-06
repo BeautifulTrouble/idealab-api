@@ -23,7 +23,12 @@
                         <a class="alert-link" href="/admin/user"><h3><span class="glyphicon glyphicon-user"></span> Users <span class="label label-warning pull-right users">{{ users }}</span></h3></a>
                     </div>
                 </div>
-            </div>
+                <div class="col-xs-12">
+                    <p class="lead">CSV Downloads:</p>
+                    <p><a href="/api/export/published_ideas.csv"><span class="glyphicon glyphicon-eye-open"></span>&nbsp;Published ideas</a></p>
+                    <br>
+                </div>
+            <div>
             {% else %}
             <p class="lead">Please login to continue.</p>
             <div class="row">

@@ -2,12 +2,14 @@
 
 # Quality imports                                                             
 # ////////////////////////////////////////////////////////////////////////////
+import csv
+import StringIO
 import datetime
 import hashlib
 import re
 import sys
 import time
-from flask import Flask
+from flask import Flask, Response
 from flask import escape, g, jsonify, redirect, request, session, url_for
 from flask.ext.admin import Admin, AdminIndexView
 from flask.ext.admin import expose
@@ -474,6 +476,31 @@ admin = Admin(app, name="Lab Admin", index_view=BaseAdmin(name='Dashboard'), tem
 admin.add_view(IdeaAdmin(Idea, db.session, name="Ideas"))
 admin.add_view(ImprovementAdmin(Improvement, db.session, name="Improvements"))
 admin.add_view(UserAdmin(User, db.session, name="Users"))
+
+
+# /export 
+# /////////////////////////////////////////////////////////
+def rows_as_csv(rows, fields=None):
+    if not current_user.admin:
+        return unauthorized_handler()
+    if fields:
+        rows.insert(0, fields)
+    buffer = StringIO.StringIO()
+    writer = csv.writer(buffer)
+    for row in rows:
+        writer.writerow([('%s' % item).encode('utf8') for item in row])
+    buffer.seek(0)
+    return Response(buffer.read(), mimetype='text/csv')
+
+@app.route('/export/published_ideas.csv', methods=['GET'])
+def export_published_ideas():
+    url = request.url_root + '#idealab/submitted/'
+    rows = []
+    for obj in Idea.query.filter(Idea.published == True):
+        serial = obj.serialized
+        rows.append([obj.name, obj.contact, obj.title, obj.short_write_up, serial['votes'], obj.date, url+serial['slug']])
+    return rows_as_csv(rows, 'name contact title content votes date url'.split())
+
 
 # /ideas 
 # /////////////////////////////////////////////////////////

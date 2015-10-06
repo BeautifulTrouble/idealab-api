@@ -486,7 +486,7 @@ def rows_as_csv(rows, fields=None):
     if fields:
         rows.insert(0, fields)
     buffer = StringIO.StringIO()
-    writer = csv.writer(buffer)
+    writer = csv.writer(buffer, dialect='excel')
     for row in rows:
         writer.writerow([('%s' % item).encode('utf8') for item in row])
     buffer.seek(0)

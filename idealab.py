@@ -3,10 +3,11 @@
 # Quality imports                                                             
 # ////////////////////////////////////////////////////////////////////////////
 import csv
-import StringIO
 import datetime
+import functools
 import hashlib
 import re
+import StringIO
 import sys
 import time
 from flask import Flask, Response
@@ -170,6 +171,17 @@ def user_loader(id):
 # checks without ensuring a user is logged in
 AnonymousUserMixin.admin = False
 AnonymousUserMixin.id = -1
+
+def admin_required(f):
+    '''
+    A decorator similar to login_required requiring an admin user
+    '''
+    @functools.wraps(f)
+    def wrapper(*a, **kw):
+        if not current_user.admin:
+            return unauthorized_handler()
+        return f(*a, **kw)
+    return wrapper
 
 
 # Models                                                                      
@@ -481,8 +493,6 @@ admin.add_view(UserAdmin(User, db.session, name="Users"))
 # /export 
 # /////////////////////////////////////////////////////////
 def rows_as_csv(rows, fields=None):
-    if not current_user.admin:
-        return unauthorized_handler()
     if fields:
         rows.insert(0, fields)
     buffer = StringIO.StringIO()
@@ -493,6 +503,7 @@ def rows_as_csv(rows, fields=None):
     return Response(buffer.read(), mimetype='text/csv')
 
 @app.route('/export/published_ideas.csv', methods=['GET'])
+@admin_required
 def export_published_ideas():
     url = request.url_root + '#idealab/submitted/'
     rows = []
@@ -500,6 +511,16 @@ def export_published_ideas():
         serial = obj.serialized
         rows.append([obj.name, obj.contact, obj.title, obj.short_write_up, serial['votes'], obj.date, url+serial['slug']])
     return rows_as_csv(rows, 'name contact title content votes date url'.split())
+
+@app.route('/export/published_improvements.csv', methods=['GET'])
+@admin_required
+def export_published_improvements():
+    url = request.url_root + '#idealab/submitted/'
+    rows = []
+    for obj in Improvement.query.filter(Improvement.published == True):
+        serial = obj.serialized
+        rows.append([serial['username'], obj.contact, obj.module, obj.type, obj.content, obj.link or '', obj.date, url+obj.module])
+    return rows_as_csv(rows, 'name contact module type content link date url'.split())
 
 
 # /ideas 

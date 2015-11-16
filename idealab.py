@@ -272,7 +272,8 @@ class Idea(ValidMixin, db.Model):
                 'short_date': '{d.month}.{d.day}.{d.year}'.format(d=self.date),
                 'long_date': '{} {d.day}, {d.year}'.format(self.date.strftime('%B'), d=self.date),
 
-                'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U).strip('-'),
+                #'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U).strip('-'),
+                'slug': self.title.lower().replace(' ', '-').replace('&#8217', '-'),
                 'published': self.published,
                 'solution': self.solution,
                 'votes': IdeaVote.cache().get(self.id, 0),

@@ -274,6 +274,7 @@ class Idea(ValidMixin, db.Model):
 
                 'slug': re.sub(r'\W+', '-', self.title.lower(), flags=re.U).strip('-'),
                 'published': self.published,
+                'solution': self.solution,
                 'votes': IdeaVote.cache().get(self.id, 0),
                 'loved': bool(IdeaVote.query.get((current_user.id, self.id))),
 
@@ -415,8 +416,8 @@ class IdeaAdmin(sqla.ModelView):
         return current_user.admin
 
     action_disallowed_list = ['delete']
-    column_list = ('date', 'published', 'title', 'short_write_up', 'name', 'contact')
-    column_filters = ('published',)
+    column_list = ('date', 'published', 'solution', 'title', 'short_write_up', 'name', 'contact')
+    column_filters = ('published', 'solution')
     column_default_sort = ('date', True)
     column_formatters = {
         'date': lambda v,c,m,n: m.date.strftime('%B %e, %Y'),
@@ -439,6 +440,7 @@ class IdeaAdmin(sqla.ModelView):
     }
     form_widget_args = {
         'published': {'style': 'width: 34px;'},
+        'solution': {'style': 'width: 34px;'},
         'short_write_up': {'rows': 10},
     }
 

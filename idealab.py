@@ -249,6 +249,7 @@ class Idea(ValidMixin, db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     published = db.Column(db.Boolean, default=False)
+    solution = db.Column(db.Boolean, default=False)
 
     title = db.Column(db.Unicode(500))
     short_write_up = db.Column(db.Unicode(5000))

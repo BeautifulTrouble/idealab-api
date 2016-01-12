@@ -106,7 +106,8 @@ def post_idea_from_google_forms():
                     'name': payload.get('name',[''])[0],
                     'contact': email,
                 })
-                idea.published = True
+                if payload.get('publish'):
+                    idea.published = True
                 if idea.is_valid:
                     db.session.add(idea)
                     db.session.commit()

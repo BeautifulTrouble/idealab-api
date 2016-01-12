@@ -6,6 +6,7 @@ import csv
 import datetime
 import functools
 import hashlib
+import json
 import re
 import StringIO
 import sys
@@ -75,6 +76,41 @@ def status(n, **kw):
     kw['status'] = n
     kw['success'] = str(n)[:1] not in '45'
     return jsonify(**kw), n
+
+def post_idea_from_google_forms():
+    gas, gasmail = 'Google-Apps-Script', 'fake-email@google.com'
+    if gas in request.headers.get('User-Agent'):
+        # Validate the request
+        try:
+            payload = json.loads(request.get_data())
+            assert payload.get('secret') == GOOGLE_SECRET
+        except: return
+
+        # Get or create some sort of user for this submission
+        email = payload.get('email', [gasmail])[0]
+        user = User.query.filter(User.contact==email).first()
+        if not user:
+            user = User(sha1('???google'), 'google', '???', gas, gasmail)
+            db.session.add(user)
+            db.session.commit()
+        login_user(user)
+        
+        # Transform the data into a User object
+        fields = 'titles descriptions links authors submit'.split()
+        for submission in zip(*(payload.get(n, ['','']) for n in fields)):
+            if submission[-1].lower() == 'yes':
+                if not (submission[0] and submission[1]): continue
+                idea = Idea({
+                    'title': submission[0], 
+                    'short_write_up': submission[1], 
+                    'name': payload.get('name',[''])[0],
+                    'contact': email,
+                })
+                idea.published = True
+                if idea.is_valid:
+                    db.session.add(idea)
+                    db.session.commit()
+        return True
 
 
 # Flask initialization                                                        
@@ -397,7 +433,7 @@ def authorize(provider):
         db.session.commit()
     login_user(user, remember=True)
     return oauth_redirect()
-
+ 
 
 # Admin
 # ////////////////////////////////////////////////////////////////////////////
@@ -537,6 +573,9 @@ def get_ideas(id=None):
 
 @app.route('/ideas', methods=['POST'])
 def post_idea():
+    # Handle auto-submissions from google forms! :)
+    if post_idea_from_google_forms():
+        return status(201)
     return post_object(Idea)
 
 @app.route('/ideas/<int:id>', methods=['PUT', 'DELETE'])
@@ -643,8 +682,11 @@ def update_object(Model, id):
     return status(500)
 
 
-# Run local server when executed as a script                                                                 
+# Run server when executed as a script                                                                 
 # ////////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
-    app.run(port=9000)
+    try:
+        port = int(sys.argv[-1])
+    except ValueError: port = 9000
+    app.run(host='0.0.0.0', port=port)
 

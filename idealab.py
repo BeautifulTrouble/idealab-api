@@ -546,7 +546,7 @@ def rows_as_csv(rows, fields=None):
 @app.route('/export/published_ideas.csv', methods=['GET'])
 @admin_required
 def export_published_ideas():
-    url = request.url_root + '/idealab/submitted/'
+    url = request.url_root + 'idealab/submitted/'
     rows = []
     for obj in Idea.query.filter(Idea.published == True):
         serial = obj.serialized
@@ -556,7 +556,7 @@ def export_published_ideas():
 @app.route('/export/published_improvements.csv', methods=['GET'])
 @admin_required
 def export_published_improvements():
-    url = request.url_root + '/idealab/submitted/'
+    url = request.url_root + 'idealab/submitted/'
     rows = []
     for obj in Improvement.query.filter(Improvement.published == True):
         serial = obj.serialized

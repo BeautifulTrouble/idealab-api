@@ -1,0 +1,9 @@
+[Unit]
+Description=Idealab API service
+
+[Service]
+Type=simple
+ExecStart=/home/bs/idealab-api/venv/bin/python /home/bs/idealab-api/idealab.py
+StandardOutput=syslog
+StandardError=syslog
+
